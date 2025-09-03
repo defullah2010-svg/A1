@@ -306,6 +306,7 @@ footer { text-align:center; padding:10px; color:#333; font-weight:bold; font-siz
 <script>
 let uploadedImages = {};
 
+// التبويبات
 function openTab(tabId, evt){
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.tab-button').forEach(el=>el.classList.remove('active'));
@@ -313,111 +314,100 @@ function openTab(tabId, evt){
   if(evt) evt.currentTarget.classList.add('active');
 }
 
-// حفظ الصور
+// حفظ الصور وعرضها
 function storeImages(event){
-  const tabId = event.target.closest('.tab-content').id;
+  const tabContent = event.target.closest('.tab-content');
+  const tabId = tabContent.id;
   const files = event.target.files;
+
   if(!uploadedImages[tabId]) uploadedImages[tabId] = [];
+
   if(uploadedImages[tabId].length + files.length > 4){
     alert("مسموح برفع 4 صور فقط لكل تقرير.");
     event.target.value = "";
     return;
   }
+
   for(let i=0;i<files.length;i++){
     const reader = new FileReader();
-    reader.onload = function(e){ 
-      uploadedImages[tabId].push(e.target.result); 
-      updatePreview(tabId);
-      saveTabData(tabId); // حفظ تلقائي عند رفع الصور
+    reader.onload = function(e){
+      uploadedImages[tabId].push(e.target.result);
+      updatePreview(tabContent, tabId);
     }
     reader.readAsDataURL(files[i]);
   }
 }
 
-// عرض الصور في الصفحة مع إمكانية الحذف
-function updatePreview(tabId){
-  const tabContent = document.getElementById(tabId);
+// تحديث عرض الصور وعدادها
+function updatePreview(tabContent, tabId){
   const previewDiv = tabContent.querySelector('.preview');
-  if(!previewDiv) return;
-  previewDiv.innerHTML = '';
-  (uploadedImages[tabId] || []).forEach((src,index)=>{
+  const counterDiv = tabContent.querySelector('.counter');
+
+  previewDiv.innerHTML = ''; // تفريغ المعاينة
+  uploadedImages[tabId].forEach((src, index)=>{
     const imgWrapper = document.createElement('div');
-    imgWrapper.style.position = 'relative';
-    imgWrapper.style.display = 'inline-block';
-    imgWrapper.style.margin = '2px';
-    
+    imgWrapper.style.position='relative';
+
     const img = document.createElement('img');
     img.src = src;
-    img.style.width='80px';
-    img.style.height='80px';
-    img.style.objectFit='cover';
+    img.style.width = '150px';
+    img.style.height = '150px';
+    img.style.objectFit = 'cover';
+    img.style.margin = '2px';
     imgWrapper.appendChild(img);
-    
+
     const delBtn = document.createElement('button');
-    delBtn.textContent='×';
-    delBtn.style.position='absolute';
-    delBtn.style.top='-5px';
-    delBtn.style.right='-5px';
+    delBtn.textContent = 'X';
+    delBtn.style.position = 'absolute';
+    delBtn.style.top = '2px';
+    delBtn.style.right = '2px';
     delBtn.style.background='red';
     delBtn.style.color='white';
     delBtn.style.border='none';
     delBtn.style.borderRadius='50%';
-    delBtn.style.width='18px';
-    delBtn.style.height='18px';
+    delBtn.style.width='20px';
+    delBtn.style.height='20px';
     delBtn.style.cursor='pointer';
-    delBtn.addEventListener('click',()=>{
+    delBtn.onclick = function(){
       uploadedImages[tabId].splice(index,1);
-      updatePreview(tabId);
-      saveTabData(tabId);
-    });
-    
+      updatePreview(tabContent, tabId);
+    };
     imgWrapper.appendChild(delBtn);
+
     previewDiv.appendChild(imgWrapper);
   });
+
+  counterDiv.textContent = uploadedImages[tabId].length + " / 4";
 }
 
-// حفظ البيانات في LocalStorage
-function saveTabData(tabId){
-  const tabContent = document.getElementById(tabId);
-  const inputs = tabContent.querySelectorAll('input[type="text"]');
-  const data = Array.from(inputs).map(input=>input.value);
-  const images = uploadedImages[tabId] || [];
-  localStorage.setItem('tabData_'+tabId, JSON.stringify({data,dataImages:images}));
+// زر حذف كل البيانات
+function clearData(btn){
+  const tabContent = btn.closest('.tab-content');
+  const tabId = tabContent.id;
+
+  // مسح كل الحقول النصية
+  tabContent.querySelectorAll('input[type="text"]').forEach(input => input.value = '');
+
+  // مسح الصور من المعاينة
+  const previewDiv = tabContent.querySelector('.preview');
+  if(previewDiv) previewDiv.innerHTML = '';
+
+  // تصفير عداد الصور
+  const counterDiv = tabContent.querySelector('.counter');
+  if(counterDiv) counterDiv.textContent = '';
+
+  // مسح كل الصور من المصفوفة
+  if(uploadedImages[tabId]) uploadedImages[tabId] = [];
 }
 
-// تحميل البيانات عند الفتح
-function loadTabData(tabId){
-  const saved = localStorage.getItem('tabData_'+tabId);
-  if(saved){
-    const obj = JSON.parse(saved);
-    const inputs = document.getElementById(tabId).querySelectorAll('input[type="text"]');
-    inputs.forEach((input,i)=>{ input.value = obj.data[i] || ''; });
-    uploadedImages[tabId] = obj.dataImages || [];
-    updatePreview(tabId);
-  }
-}
-
-// استرجاع البيانات لجميع التبويبات عند التحميل
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.tab-content').forEach(tab=>{
-    loadTabData(tab.id);
-  });
-});
-
-// حفظ تلقائي عند تغير أي input
-document.querySelectorAll('input[type="text"]').forEach(input=>{
-  input.addEventListener('input',()=>{
-    const tabId = input.closest('.tab-content').id;
-    saveTabData(tabId);
-  });
-});
-
+// ضبط التاريخ
 setTimeout(()=>{
   document.querySelectorAll('.date').forEach(el=>{
     flatpickr(el,{ locale:'ar', dateFormat:"d-m-Y", altInput:true, altFormat:"d-m-Y" });
   });
 },500);
 
+// طباعة PDF
 function printPDF(btn){
   const tabContent = btn.closest('.tab-content');
   const tabId = tabContent.id;
@@ -466,7 +456,7 @@ function printPDF(btn){
       imagesWrapper.appendChild(img);
     });
     const activityDiv = Array.from(content.querySelectorAll('div'))
-      .find(div => div.innerHTML.includes('رائد النشاط'));
+      .find(div => div.innerHTML.includes('رائدة النشاط'));
     if (activityDiv) { content.insertBefore(imagesWrapper, activityDiv); }
   }
 
@@ -478,30 +468,7 @@ function printPDF(btn){
     jsPDF:{unit:'mm', format:'a4', orientation:'portrait'}
   }).from(wrapper).save();
 }
-
-// زر حذف البيانات أسفل زر الطباعة لكل تبويب
-// زر حذف البيانات أسفل زر الطباعة لكل تبويب
-document.querySelectorAll('.tab-content').forEach(tab=>{
-  const delBtn = document.createElement('button');
-  delBtn.textContent = 'حذف البيانات';
-  delBtn.style.background = 'red';
-  delBtn.style.color = 'white';
-  delBtn.style.marginTop = '5px';
-  delBtn.addEventListener('click',()=>{
-    if(confirm('هل أنت متأكد من حذف جميع البيانات؟')){
-      const inputs = tab.querySelectorAll('input[type="text"]');
-      inputs.forEach(input=>input.value='');
-      localStorage.removeItem('tabData_'+tab.id);
-      uploadedImages[tab.id] = [];
-      updatePreview(tab.id);
-      // تصفير عداد الصور
-      const counter = tab.querySelector('.counter');
-      if(counter) counter.textContent = '';
-    }
-  });
-  const printBtn = tab.querySelector('button');
-  printBtn.insertAdjacentElement('afterend', delBtn);
-});
 </script>
+
 </body>
 </html>
