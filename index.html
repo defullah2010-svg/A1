@@ -480,6 +480,7 @@ function printPDF(btn){
 }
 
 // زر حذف البيانات أسفل زر الطباعة لكل تبويب
+// زر حذف البيانات أسفل زر الطباعة لكل تبويب
 document.querySelectorAll('.tab-content').forEach(tab=>{
   const delBtn = document.createElement('button');
   delBtn.textContent = 'حذف البيانات';
@@ -493,6 +494,9 @@ document.querySelectorAll('.tab-content').forEach(tab=>{
       localStorage.removeItem('tabData_'+tab.id);
       uploadedImages[tab.id] = [];
       updatePreview(tab.id);
+      // تصفير عداد الصور
+      const counter = tab.querySelector('.counter');
+      if(counter) counter.textContent = '';
     }
   });
   const printBtn = tab.querySelector('button');
